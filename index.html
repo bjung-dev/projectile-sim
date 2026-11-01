@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projectile Motion Simulator</title>
+  <meta name="description" content="Interactive projectile motion simulator with real-time trajectories, adjustable launch parameters, and derivations of range, maximum height, and flight time from the three kinematic equations.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+  <script defer src="js/physics.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="#simulator">🎯 Projectile Motion Simulator</a>
+      <nav>
+        <a href="#simulator">Simulator</a>
+        <a href="#math">Mathematical models</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- ================= Simulator ================= -->
+    <section id="simulator" class="wrap">
+      <p class="lede">Set the launch conditions, press <strong>Launch</strong>, and watch the projectile fly in real time.
+        Every number is computed from the three basic kinematic equations.</p>
+
+      <div class="sim-grid">
+        <aside class="panel controls" aria-label="Launch parameters">
+          <h2>Launch parameters</h2>
+
+          <div class="field">
+            <label for="speed">Launch speed, v₀</label>
+            <div class="field-row">
+              <input type="range" id="speed" min="0" max="100" step="0.5" value="25">
+              <span class="num"><input type="number" id="speed-num" min="0" max="100" step="0.5" value="25" aria-label="Launch speed in m/s"> m/s</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="angle">Launch angle, θ</label>
+            <div class="field-row">
+              <input type="range" id="angle" min="0" max="90" step="0.5" value="45">
+              <span class="num"><input type="number" id="angle-num" min="0" max="90" step="0.5" value="45" aria-label="Launch angle in degrees"> °</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="height">Launch height, h</label>
+            <div class="field-row">
+              <input type="range" id="height" min="0" max="100" step="0.5" value="0">
+              <span class="num"><input type="number" id="height-num" min="0" max="100" step="0.5" value="0" aria-label="Launch height in metres"> m</span>
+            </div>
+          </div>
+
+          <h2>Gravity</h2>
+          <div class="segmented" role="radiogroup" aria-label="Gravity preset" id="planet"></div>
+          <div class="field" id="custom-g-field">
+            <label for="gravity">Gravitational acceleration, g</label>
+            <div class="field-row">
+              <input type="range" id="gravity" min="0.5" max="30" step="0.01" value="9.81">
+              <span class="num"><input type="number" id="gravity-num" min="0.5" max="30" step="0.01" value="9.81" aria-label="Gravity in m/s²"> m/s²</span>
+            </div>
+          </div>
+
+          <h2>Display</h2>
+          <div class="field">
+            <label for="playback">Playback speed</label>
+            <div class="segmented" role="radiogroup" aria-label="Playback speed" id="playback"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="show-vectors" checked> Show velocity vectors</label>
+
+          <h2>Compare</h2>
+          <div class="button-row">
+            <button type="button" id="pin">📌 Pin trajectory</button>
+            <button type="button" id="clear-pins" class="secondary" disabled>Clear</button>
+          </div>
+          <button type="button" id="share" class="secondary full">🔗 Copy link to these settings</button>
+        </aside>
+
+        <div class="stage">
+          <div class="metrics">
+            <div class="metric"><span class="metric-label">Range</span><span class="metric-value" id="m-range">–</span></div>
+            <div class="metric"><span class="metric-label">Maximum height</span><span class="metric-value" id="m-height">–</span></div>
+            <div class="metric"><span class="metric-label">Total flight time</span><span class="metric-value" id="m-time">–</span></div>
+            <div class="metric"><span class="metric-label">Impact speed</span><span class="metric-value" id="m-impact">–</span></div>
+          </div>
+
+          <div class="panel canvas-panel">
+            <div class="canvas-wrap">
+              <canvas id="canvas" aria-label="Projectile trajectory animation" role="img"></canvas>
+              <pre class="readout" id="readout" aria-live="off"></pre>
+            </div>
+            <div class="playbar">
+              <button type="button" id="play" class="primary">▶ Launch</button>
+              <button type="button" id="reset" class="secondary" aria-label="Reset to launch">↺</button>
+              <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Time in flight">
+              <span class="time-label" id="time-label">0.00 s</span>
+            </div>
+            <ul class="legend">
+              <li><span class="swatch path"></span><span>Projectile path</span></li>
+              <li><span class="swatch predicted"></span><span>Predicted path</span></li>
+              <li class="vec-legend"><span class="swatch vx"></span><span>v<sub>x</sub> (horizontal velocity)</span></li>
+              <li class="vec-legend"><span class="swatch vy"></span><span>v<sub>y</sub> (vertical velocity)</span></li>
+            </ul>
+          </div>
+          <p class="hint">Tip: press <kbd>Space</kbd> to launch or pause. Changing any parameter redraws the path instantly.</p>
+
+          <div class="panel" id="pinned-panel" hidden>
+            <h2>Pinned trajectories</h2>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th></th><th>Speed</th><th>Angle</th><th>Height</th><th>g</th><th>Range</th><th>Max height</th><th>Flight time</th><th></th></tr></thead>
+                <tbody id="pinned-body"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <details class="panel">
+            <summary>Trajectory data</summary>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>t (s)</th><th>x (m)</th><th>y (m)</th><th>vₓ (m/s)</th><th>v<sub>y</sub> (m/s)</th></tr></thead>
+                <tbody id="data-body"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Mathematical models ================= -->
+    <section id="math" class="wrap math">
+      <h1>Mathematical models</h1>
+
+      <article class="panel">
+        <h2>The three kinematic equations</h2>
+        <p>Every number in this simulator comes from these three equations for motion with
+          <strong>constant acceleration</strong> \(a\) along a straight line:</p>
+        <div class="equations">
+          <div class="eq"><span class="eq-num">(1)</span>\[v = v_0 + a t\]</div>
+          <div class="eq"><span class="eq-num">(2)</span>\[\Delta x = v_0 t + \tfrac{1}{2} a t^2\]</div>
+          <div class="eq"><span class="eq-num">(3)</span>\[v^2 = v_0^2 + 2 a \Delta x\]</div>
+        </div>
+        <p>Here \(v_0\) is the initial velocity, \(v\) the velocity after time \(t\), and \(\Delta x\) the displacement.</p>
+        <p class="note"><strong>Assumptions:</strong> no air resistance, constant gravity \(g\), flat ground, and the projectile is treated as a point.</p>
+      </article>
+
+      <article class="panel">
+        <h2>Setting up the problem</h2>
+        <p>The key idea is that horizontal and vertical motion are <strong>independent</strong>. We apply the
+          equations to each axis separately. Splitting the launch velocity into components:</p>
+        \[v_{0x} = v_0\cos\theta \qquad v_{0y} = v_0\sin\theta\]
+        <div class="table-scroll">
+          <table class="setup">
+            <thead><tr><th></th><th>Horizontal (x)</th><th>Vertical (y)</th></tr></thead>
+            <tbody>
+              <tr><th>Initial velocity</th><td>\(v_{0x} = v_0\cos\theta\)</td><td>\(v_{0y} = v_0\sin\theta\)</td></tr>
+              <tr><th>Acceleration</th><td>\(a_x = 0\)</td><td>\(a_y = -g\)</td></tr>
+              <tr><th>Start position</th><td>\(x = 0\)</td><td>\(y = h\)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Because \(a_x = 0\), equation (1) says \(v_x = v_{0x}\) stays constant for the whole flight.</p>
+      </article>
+
+      <article class="panel">
+        <h2>Maximum height</h2>
+        <p>At the top of its arc the projectile stops rising for an instant, so \(v_y = 0\).
+          Apply <strong>equation (3)</strong> vertically, with \(a = -g\):</p>
+        \[0 = v_{0y}^2 - 2g\,\Delta y \quad\Longrightarrow\quad \Delta y = \frac{v_{0y}^2}{2g}\]
+        <div class="result">\[y_{max} = h + \frac{(v_0\sin\theta)^2}{2g}\]</div>
+        <p>The time it takes to get there follows from <strong>equation (1)</strong> with \(v_y = 0\):</p>
+        \[0 = v_{0y} - g\,t_{peak} \quad\Longrightarrow\quad t_{peak} = \frac{v_0\sin\theta}{g}\]
+      </article>
+
+      <article class="panel">
+        <h2>Total flight time</h2>
+        <p>The flight ends when the projectile hits the ground, which is a vertical displacement of
+          \(\Delta y = -h\). Apply <strong>equation (2)</strong> vertically:</p>
+        \[-h = v_{0y}\,t - \tfrac{1}{2} g t^2 \quad\Longrightarrow\quad \tfrac{1}{2} g t^2 - v_{0y}\,t - h = 0\]
+        <p>This is a quadratic in \(t\). The quadratic formula gives one positive root:</p>
+        <div class="result">\[t_{flight} = \frac{v_0\sin\theta + \sqrt{(v_0\sin\theta)^2 + 2gh}}{g}\]</div>
+        <p><strong>Special case, launched from the ground (\(h = 0\)):</strong>
+          \(t_{flight} = \dfrac{2v_0\sin\theta}{g} = 2\,t_{peak}\). The way up and the way down take equal time.</p>
+      </article>
+
+      <article class="panel">
+        <h2>Range</h2>
+        <p>Horizontally there is no acceleration, so <strong>equation (2)</strong> with \(a_x = 0\) reduces to
+          distance = velocity × time. Use the flight time found above:</p>
+        <div class="result">\[R = v_{0x}\,t_{flight} = v_0\cos\theta \cdot t_{flight}\]</div>
+        <p><strong>Special case, \(h = 0\):</strong> substitute \(t_{flight} = 2v_0\sin\theta / g\) and use
+          \(2\sin\theta\cos\theta = \sin 2\theta\):</p>
+        \[R = \frac{v_0^2 \sin 2\theta}{g}\]
+        <p>\(\sin 2\theta\) is largest when \(2\theta = 90^\circ\), so from level ground the <strong>maximum range is at
+          θ = 45°</strong>. Complementary angles such as 30° and 60° give the same range. From a raised launch
+          point (\(h &gt; 0\)) the best angle is a little below 45°. Try it in the simulator above.</p>
+      </article>
+
+      <article class="panel">
+        <h2>Worked example: your current settings</h2>
+        <p id="example-intro"></p>
+        <div id="example" class="example"></div>
+        <p><a href="#simulator">↑ Back to the simulator</a></p>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      Built with plain HTML, CSS and JavaScript · Equations rendered with <a href="https://katex.org">KaTeX</a> ·
+      <a href="https://github.com/bjung-dev/projectile-sim">Source on GitHub</a>
+    </div>
+  </footer>
+</body>
+</html>

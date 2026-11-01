@@ -1,17 +1,21 @@
 # Projectile Motion Simulator
 
-An interactive web app that animates projectile motion in real time and explains the math behind it. Built in Python with [Streamlit](https://streamlit.io) and [Plotly](https://plotly.com/python/).
+An interactive website that animates projectile motion in real time and explains the math behind it. It's built with plain HTML, CSS and JavaScript (no frameworks, no build step), with equations typeset by [KaTeX](https://katex.org).
+
+**▶ Live site: https://bjung-dev.github.io/projectile-sim/**
 
 <!-- Add a screenshot here: ![Screenshot](screenshot.png) -->
 
 ## Features
 
 - **Adjustable launch parameters:** launch speed, angle, and height, plus gravity (Earth, Moon, Mars, Jupiter, or a custom value)
-- **Real-time animation:** the projectile flies at true simulated speed (with a 0.25× to 10× playback control), tracing its path with live velocity-component vectors and a readout of t, x, y, vₓ and v_y
+- **Real-time animation:** the projectile flies at true simulated speed (with a 0.25× to 10× playback control), tracing its path with live velocity-component vectors and a readout of t, x, y, vx and vy
 - **Instant updates:** moving any slider redraws the predicted path and recomputes the results
 - **Results:** range, maximum height, total flight time, and impact speed
 - **Comparison:** pin trajectories to overlay them and compare them in a table
-- **Mathematical models tab:** step-by-step derivations, plus a worked example that uses your current settings
+- **Shareable links:** the current settings are saved in the URL
+- **Mathematical models section:** step-by-step derivations, plus a worked example that uses your current settings
+- Works on phones, and follows your system's light or dark mode
 
 ## The mathematical models
 
@@ -21,7 +25,7 @@ Everything is computed from the three basic kinematic equations for constant acc
 2. Δx = v₀ t + ½ a t²
 3. v² = v₀² + 2 a Δx
 
-Each axis is treated on its own: horizontally a = 0, and vertically a = −g. The launch velocity splits into v₀ₓ = v₀ cos θ and v₀ᵧ = v₀ sin θ.
+Each axis is treated on its own: horizontally a = 0, and vertically a = −g. The launch velocity splits into v₀ₓ = v₀ cos θ and v₀y = v₀ sin θ.
 
 | Quantity | Equation used | Result |
 |---|---|---|
@@ -36,7 +40,7 @@ From level ground (h = 0), these reduce to t = 2v₀ sin θ / g and R = v₀² s
 
 ## Validation
 
-The tests in [`tests/test_physics.py`](tests/test_physics.py) check the model against textbook results:
+[`tests/index.html`](tests/index.html) runs [`tests/physics.test.js`](tests/physics.test.js) in the browser and checks the model against textbook results:
 
 | Check | Expected result |
 |---|---|
@@ -48,24 +52,23 @@ The tests in [`tests/test_physics.py`](tests/test_physics.py) check the model ag
 | Complementary angles (30° and 60°) | Equal range |
 | Optimal angle | 45° from the ground, below 45° from a height |
 | Impact speed | Matches energy conservation, v² = v₀² + 2gh |
-| Trajectory consistency | Lands at y = 0 at x = R; v_y = 0 at the peak |
+| Trajectory consistency | Lands at y = 0 at x = R; vy = 0 at the peak |
+
+On the live site, these run at [/tests/](https://bjung-dev.github.io/projectile-sim/tests/).
 
 ## Running locally
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate        # Windows  (macOS/Linux: source .venv/bin/activate)
-pip install -r requirements.txt
-streamlit run app.py          # opens http://localhost:8501
-pytest                        # run the tests
-```
+No install is needed. Open `index.html` in a browser. (Equation rendering loads KaTeX from a CDN, so it needs an internet connection.)
 
 ## Project structure
 
 ```
-physics.py           The three kinematic equations and the projectile solver
-app.py               Streamlit user interface (simulator + mathematical models tabs)
-tests/               Validation tests (pytest)
+index.html            Page: simulator + mathematical models
+css/style.css         Styles (light and dark themes, mobile layout)
+js/physics.js         The three kinematic equations and the projectile solver
+js/app.js             Controls, canvas animation, tables and worked example
+tests/index.html      Browser test runner
+tests/physics.test.js Validation tests
 ```
 
 ## Built with Claude Code
